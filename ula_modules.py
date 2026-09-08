@@ -26,7 +26,8 @@ def halfAdder(a, b, soma, carry):
     """
     @always_comb
     def comb():
-        pass
+        soma.next = a ^ b   # XOR
+        carry.next = a & b  # AND
 
     return instances()
 
@@ -44,7 +45,8 @@ def fullAdder(a, b, c, soma, carry):
     """
     @always_comb
     def comb():
-        pass
+        soma.next = a ^ b ^ c
+        carry.next = (a & b) | (b & c) | (a & c)
 
     return instances()
 
@@ -62,6 +64,12 @@ def adder2bits(x, y, soma, carry):
         soma: Vetor de saida de 2 bits.
         carry: Carry de saida.
     """
+    """Somador de 2 bits usando dois full adders."""
+    c0 = Signal(bool(0))
+
+    fa0 = fullAdder(x[0], y[0], 0, soma[0], c0)
+    fa1 = fullAdder(x[1], y[1], c0, soma[1], carry)
+
     return instances()
 
 
@@ -78,8 +86,18 @@ def adder(x, y, soma, carry):
         soma: Vetor de saida com mesma largura de x/y.
         carry: Carry de saida mais significativo.
     """
-    return instances()
+    n = len(x)
+    c = [Signal(bool(0)) for _ in range(n+1)]
 
+    fa_list = []
+    for i in range(n):
+        fa_list.append(fullAdder(x[i], y[i], c[i], soma[i], c[i+1]))
+
+    @always_comb
+    def logic():
+        carry.next = c[n]
+
+    return instances()
 
 @block
 def addervb(x, y, soma, carry):
@@ -96,6 +114,9 @@ def addervb(x, y, soma, carry):
     """
     @always_comb
     def comb():
-        pass
+        total = int(x) + int(y)
+        soma.next = total & ((1 << len(x)) - 1)  # pega apenas os bits da largura
+        carry.next = total >> len(x)             # pega o carry
 
     return instances()
+
